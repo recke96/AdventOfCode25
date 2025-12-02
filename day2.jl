@@ -1,19 +1,17 @@
 import Logging
 
-(@main)(args) = open(args[1], "r") do io
-    invalid_ticket_id_sum = 0
-    while (range = readuntil(io, ',')) != ""
-        min_str, max_str = split(range, '-', limit=2)
-        min = parse(Int, min_str)
-        max = parse(Int, max_str)
+function (@main)(args)
+    t = eachcommadelimitedvalue(args[1]) |>
+        v -> Iterators.map(x -> split(x, '-', limit=2), v) |>
+        v -> Iterators.map(x -> parse.(Int, x), v) |>
+        v -> Iterators.flatmap(x -> x[1]:x[2], v) |>
+        v -> Iterators.filter(is_invalid_pt1, v) |>
+        sum
 
-        
-        invalid_ticket_id_sum += filter(is_repeated_number, Base.range(min, max)) |> sum
-    end
-    @info "Sum of invalid ticket IDs: $(invalid_ticket_id_sum)"
+    @info "Sum of invalid pt1 ids: $(t)"
 end
 
-function is_repeated_number(num::Int)::Bool
+function is_invalid_pt1(num::Int)::Bool
     str_num = string(num)
     if length(str_num) % 2 != 0
         return false
@@ -24,6 +22,16 @@ function is_repeated_number(num::Int)::Bool
             return false
         end
     end
-    @debug "Found invalid id: $(num)"
+    @debug "Found invalid pt1 id: $(num)"
     return true
+end
+
+function eachcommadelimitedvalue(file::AbstractString)::Channel{String}
+    return Channel{String}() do ch
+        open(file, "r") do io
+            while (value = readuntil(io, ',')) != ""
+                put!(ch, value)
+            end
+        end
+    end
 end
