@@ -51,15 +51,24 @@ function pt2(file::AbstractString)::Int
     discovered::Vector{Node} = copy(graph.out)
     visited::Set{Tuple{Int,Int}} = Set{Tuple{Int,Int}}()
     timelines::Dict{Tuple{Int,Int},Int} = Dict(graph.id => 1)
+    total_timelines::Int = 0
     while !isempty(discovered)
         current = popfirst!(discovered)
         if current.id in visited
             continue
         end
 
-        @debug current
         current_timelines = sum(timelines[parent.id] for parent in current.in)
+
+        @debug "Node $(current.id) is reachable in $current_timelines ways."
+
         timelines[current.id] = current_timelines
+        if isempty(current.out)
+            # we count all possible ways to reach a leaf node
+            total_timelines += current_timelines
+
+            @debug "Node $(current.id) is a leaf node. Total timelines is now $total_timelines"
+        end
 
         push!(visited, current.id)
         for child in current.out
@@ -68,8 +77,7 @@ function pt2(file::AbstractString)::Int
         end
     end
 
-
-    return timelines[(typemax(Int), typemax(Int))]
+    return total_timelines
 end
 
 struct Node
@@ -122,12 +130,6 @@ function read_graph(file::AbstractString)::Node
         end
 
         last_nodes = next_nodes
-    end
-
-    # add an artificial last node for easy counting
-    stop = Node((typemax(Int), typemax(Int)), last_nodes, [])
-    for n in last_nodes
-        push!(n.out, stop)
     end
 
     return graph
