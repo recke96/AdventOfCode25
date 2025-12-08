@@ -1,6 +1,6 @@
 
 function (@main)(args)
-    size = @timed pt1(args[1])
+    size = @timed pt2(args[1])
 
     @info "Circuit Size: $(size.value)"
     @info "Stats: $(size)"
@@ -31,7 +31,7 @@ function pt1(file::AbstractString)::Int
             continue
         end
 
-        
+
         circuit_a = circuits[circuit_a_idx]
         circuit_b = circuits[circuit_b_idx]
 
@@ -40,6 +40,51 @@ function pt1(file::AbstractString)::Int
 
         @debug "Connected $a and $b, circuit now has size $(length(circuit_a))"
         @debug "Remaining circuits: $(length(circuits))"
+    end
+
+    top = Iterators.map(length, circuits) |>
+          c -> sort(collect(c), rev=true) |>
+               c -> Iterators.take(c, 3) |>
+                    collect
+
+    @debug "The largest 3 circuits have $top elements"
+
+    return Iterators.reduce((*), top)
+end
+
+function pt2(file::AbstractString)::Int
+    coordinates = read_coordinates(file)
+
+    pairs = unique_pairs(coordinates)
+    order = sortperm(pairs, by=(pair) -> distance(pair...))
+
+    circuits = [Set{Coordinate}([c]) for c in coordinates]
+
+    for idx in order
+        a, b = pairs[idx]
+
+        circuit_a_idx = findfirst(c -> a in c, circuits)
+        circuit_b_idx = findfirst(c -> b in c, circuits)
+
+        if circuit_a_idx == circuit_b_idx
+            @debug "$a and $b are already connected"
+            continue
+        end
+
+
+        circuit_a = circuits[circuit_a_idx]
+        circuit_b = circuits[circuit_b_idx]
+
+        union!(circuit_a, circuit_b)
+        deleteat!(circuits, circuit_b_idx)
+
+        @debug "Connected $a and $b, circuit now has size $(length(circuit_a))"
+        @debug "Remaining circuits: $(length(circuits))"
+
+        if length(circuits) == 1
+            @debug "This was the final connection"
+            return a.x * b.x
+        end
     end
 
     top = Iterators.map(length, circuits) |>
